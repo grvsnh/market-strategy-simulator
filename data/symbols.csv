@@ -1,0 +1,52 @@
+symbol,name
+^NSEI,NIFTY 50 Index
+^BSESN,BSE SENSEX Index
+
+AAPL,Apple Inc.
+MSFT,Microsoft Corporation
+GOOGL,Alphabet Inc. (Google)
+AMZN,Amazon.com Inc.
+META,Meta Platforms Inc.
+TSLA,Tesla Inc.
+NVDA,NVIDIA Corporation
+NFLX,Netflix Inc.
+INTC,Intel Corporation
+AMD,Advanced Micro Devices Inc.
+ORCL,Oracle Corporation
+IBM,International Business Machines
+ADBE,Adobe Inc.
+PYPL,PayPal Holdings Inc.
+
+RELIANCE.NS,Reliance Industries Ltd
+TCS.NS,Tata Consultancy Services
+INFY.NS,Infosys Ltd
+HDFCBANK.NS,HDFC Bank Ltd
+ICICIBANK.NS,ICICI Bank Ltd
+SBIN.NS,State Bank of India
+AXISBANK.NS,Axis Bank Ltd
+KOTAKBANK.NS,Kotak Mahindra Bank
+LT.NS,Larsen & Toubro Ltd
+ITC.NS,ITC Ltd
+HINDUNILVR.NS,Hindustan Unilever Ltd
+BHARTIARTL.NS,Bharti Airtel Ltd
+ASIANPAINT.NS,Asian Paints Ltd
+MARUTI.NS,Maruti Suzuki India Ltd
+TATAMOTORS.NS,Tata Motors Ltd
+TATASTEEL.NS,Tata Steel Ltd
+WIPRO.NS,Wipro Ltd
+HCLTECH.NS,HCL Technologies Ltd
+SUNPHARMA.NS,Sun Pharmaceutical Industries Ltd
+ULTRACEMCO.NS,UltraTech Cement Ltd
+BAJFINANCE.NS,Bajaj Finance Ltd
+BAJAJFINSV.NS,Bajaj Finserv Ltd
+NTPC.NS,NTPC Ltd
+POWERGRID.NS,Power Grid Corporation of India Ltd
+ONGC.NS,Oil and Natural Gas Corporation Ltd
+COALINDIA.NS,Coal India Ltd
+ADANIENT.NS,Adani Enterprises Ltd
+ADANIPORTS.NS,Adani Ports & SEZ Ltd
+TECHM.NS,Tech Mahindra Ltd
+DIVISLAB.NS,Divi's Laboratories Ltd
+DRREDDY.NS,Dr. Reddy's Laboratories Ltd
+GRASIM.NS,Grasim Industries Ltd
+JSWSTEEL.NS,JSW Steel Ltd

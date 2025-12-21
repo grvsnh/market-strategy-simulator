@@ -2,14 +2,14 @@
 app.py
 
 Main entry point for the Market Strategy Simulator dashboard.
-Handles UI, user inputs, and visualization.
+Provides an interactive UI to explore market data and simulate strategies.
 """
 
 from datetime import date
 
 import streamlit as st
-import pandas as pd
 import plotly.graph_objects as go
+import pandas as pd
 
 from utils.data_loader import load_market_data
 from strategies.moving_average import moving_average_crossover
@@ -27,19 +27,38 @@ st.title("📊 Market Strategy Simulator")
 st.write(
     """
     An interactive dashboard to explore historical market data and
-    simulate algorithmic trading strategies.
+    simulate algorithmic trading strategies using free market data.
     """
 )
 
 st.divider()
+
+
+# -------------------------------------------------------------------
+# Load symbol list
+# -------------------------------------------------------------------
+@st.cache_data
+def load_symbols():
+    return pd.read_csv("data/symbols.csv")
+
+
+symbols_df = load_symbols()
 
 # -------------------------------------------------------------------
 # Sidebar – User controls
 # -------------------------------------------------------------------
 st.sidebar.header("Configuration")
 
-ticker = st.sidebar.text_input("Ticker Symbol", value="AAPL")
+# Company selector (UX FIX)
+selected_row = st.sidebar.selectbox(
+    "Select Company / Index",
+    options=symbols_df.index,
+    format_func=lambda i: f"{symbols_df.loc[i, 'name']} ({symbols_df.loc[i, 'symbol']})",
+)
 
+ticker = str(symbols_df.loc[selected_row, "symbol"])
+
+# Date inputs
 start_date = st.sidebar.date_input(
     "Start Date",
     value=date(2022, 1, 1),
@@ -50,6 +69,7 @@ end_date = st.sidebar.date_input(
     value=date(2023, 1, 1),
 )
 
+# Strategy parameters
 st.sidebar.subheader("Moving Average Strategy")
 
 short_window = st.sidebar.slider(
@@ -73,23 +93,23 @@ run_button = st.sidebar.button("Run Simulation")
 # -------------------------------------------------------------------
 if run_button:
     try:
-        # Load data
+        # Load market data
         df = load_market_data(ticker, start_date, end_date)
 
-        # Apply strategy
+        # Apply Moving Average strategy
         df_signals = moving_average_crossover(
             df,
             short_window=short_window,
             long_window=long_window,
         )
 
-        st.success(f"Loaded data for {ticker.upper()}")
+        st.success(f"Loaded data for {ticker}")
 
         # ------------------------------------------------------------
         # Data preview
         # ------------------------------------------------------------
         st.subheader("Market Data Preview")
-        st.dataframe(df_signals.tail(10))
+        st.dataframe(df_signals.tail(10), use_container_width=True)
 
         # ------------------------------------------------------------
         # Visualization
@@ -136,4 +156,4 @@ if run_button:
         st.error(str(e))
 
 else:
-    st.info("Configure parameters in the sidebar and click **Run Simulation**.")
+    st.info("Select a company, adjust parameters, and click **Run Simulation**.")
