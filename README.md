@@ -1,6 +1,6 @@
 # 📈 Market Strategy Simulator
 
-## 🎓 CS50 Final Project
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-brightgreen?style=for-the-badge)](https://market-strategy-simulator.streamlit.app/)
 
 The **Market Strategy Simulator** is an interactive web-based dashboard that allows users to explore historical market data and visualize common algorithmic trading strategies.
 
@@ -114,6 +114,12 @@ http://localhost:8501
 ```
 
 ---
+
+## 🌐 Live Demo
+
+The application is also publicly deployed and can be accessed here with the default pre-made Strategies
+
+👉 **[Check the Live Demo](https://market-strategy-simulator.streamlit.app/)**
 
 ## 🛠 Technologies Used
 
