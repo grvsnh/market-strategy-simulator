@@ -121,6 +121,8 @@ The application is also publicly deployed and can be accessed here with the defa
 
 👉 **[Check the Live Demo](https://market-strategy-simulator.streamlit.app/)**
 
+---
+
 ## 🛠 Technologies Used
 
 -   **Python**
