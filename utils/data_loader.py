@@ -25,7 +25,7 @@ def load_market_data(
     Parameters
     ----------
     ticker : str
-        Stock or asset symbol (e.g. 'AAPL', 'MSFT')
+        Stock or index symbol (e.g. 'AAPL', 'RELIANCE.NS', '^NSEI')
     start_date : date
         Start date for historical data
     end_date : date
@@ -42,11 +42,15 @@ def load_market_data(
         If ticker is empty or no data is returned
     """
 
-    # --- Input validation ---
+    # -----------------------------
+    # Input validation
+    # -----------------------------
     if not ticker or not ticker.strip():
         raise ValueError("Ticker symbol cannot be empty")
 
-    # --- Download data ---
+    # -----------------------------
+    # Download data
+    # -----------------------------
     df = yf.download(
         ticker.strip().upper(),
         start=start_date,
@@ -55,15 +59,29 @@ def load_market_data(
         auto_adjust=False,
     )
 
-    # --- Defensive checks (Pylance-safe) ---
+    # -----------------------------
+    # Defensive checks
+    # -----------------------------
     if df is None or df.empty:
         raise ValueError(f"No data found for ticker '{ticker}'")
 
-    # --- Keep standard OHLCV columns only ---
+    # -----------------------------
+    # FIX: Flatten MultiIndex columns from yfinance
+    # -----------------------------
+    # yfinance often returns columns like ('Close', 'AAPL')
+    # Plotly and indicators require 1D Series
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    # -----------------------------
+    # Keep standard OHLCV columns only
+    # -----------------------------
     required_columns = ["Open", "High", "Low", "Close", "Volume"]
     df = df[required_columns]
 
-    # --- Clean data ---
+    # -----------------------------
+    # Final cleanup
+    # -----------------------------
     df.dropna(inplace=True)
     df.index.name = "Date"
 

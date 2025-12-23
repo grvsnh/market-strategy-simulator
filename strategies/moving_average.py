@@ -1,11 +1,12 @@
 """
 moving_average.py
 
-Implements a Moving Average (MA) crossover strategy.
-Pure strategy logic only — no UI, no plotting.
+Moving Average crossover strategy.
+Uses shared indicators from utils.indicators.
 """
 
 import pandas as pd
+from utils.indicators import simple_moving_average
 
 
 def moving_average_crossover(
@@ -13,29 +14,6 @@ def moving_average_crossover(
     short_window: int = 20,
     long_window: int = 50,
 ) -> pd.DataFrame:
-    """
-    Apply a moving average crossover strategy to market data.
-
-    Parameters
-    ----------
-    data : pd.DataFrame
-        Market data containing a 'Close' column
-    short_window : int
-        Window size for the short moving average
-    long_window : int
-        Window size for the long moving average
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame with added columns:
-        - SMA_Short
-        - SMA_Long
-        - Signal
-        - Position
-    """
-
-    # --- Validation ---
     if "Close" not in data.columns:
         raise ValueError("Data must contain a 'Close' column")
 
@@ -44,18 +22,13 @@ def moving_average_crossover(
 
     df = data.copy()
 
-    # --- Moving averages ---
-    df["SMA_Short"] = df["Close"].rolling(window=short_window).mean()
-    df["SMA_Long"] = df["Close"].rolling(window=long_window).mean()
+    df["SMA_Short"] = simple_moving_average(df["Close"], short_window)
+    df["SMA_Long"] = simple_moving_average(df["Close"], long_window)
 
-    # --- Signal generation (vectorized & safe) ---
-    df["Signal"] = 0
+    # Signal: 1 = bullish, 0 = bearish
     df["Signal"] = (df["SMA_Short"] > df["SMA_Long"]).astype(int)
 
-    # Remove early-period noise
-    df.loc[: df.index[long_window - 1], "Signal"] = 0
-
-    # --- Position changes ---
+    # Position change: +1 = Buy, -1 = Sell
     df["Position"] = df["Signal"].diff()
 
     return df
