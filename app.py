@@ -2,7 +2,7 @@
 app.py
 
 Market Strategy Simulator dashboard.
-UI + orchestration only.
+Supports both free-form ticker input and curated symbol selection.
 """
 
 from datetime import date
@@ -27,53 +27,64 @@ from strategies.rsi import apply_rsi
 # -------------------------------------------------
 # Page configuration
 # -------------------------------------------------
-st.set_page_config(
-    page_title="Market Strategy Simulator",
-    layout="wide",
-)
+st.set_page_config(page_title="Market Strategy Simulator", layout="wide")
 
 st.title("📊 Market Strategy Simulator")
 st.write(
-    "An interactive dashboard to explore historical market data and "
+    "An interactive dashboard to explore global market data and "
     "visualize algorithmic trading strategies (analysis only, no live trading)."
 )
 
 st.divider()
 
 # -------------------------------------------------
-# Load symbols
+# Sidebar – Symbol Selection
 # -------------------------------------------------
-symbols_df = load_symbols()
+st.sidebar.header("Symbol Selection")
+
+symbol_mode = st.sidebar.radio(
+    "How would you like to select a symbol?",
+    ["Search Any Ticker", "Select from Popular List"],
+)
+
+ticker = None
+
+if symbol_mode == "Search Any Ticker":
+    ticker = (
+        st.sidebar.text_input(
+            "Enter Ticker Symbol (Yahoo Finance compatible)",
+            value="AAPL",
+            help="Examples: AAPL, MSFT, RELIANCE.NS, ^NSEI, BTC-USD",
+        )
+        .strip()
+        .upper()
+    )
+
+else:
+    symbols_df = load_symbols()
+
+    row = st.sidebar.selectbox(
+        "Select Company / Index",
+        options=symbols_df.index,
+        format_func=lambda i: f"{symbols_df.loc[i,'name']} ({symbols_df.loc[i,'symbol']})",
+    )
+
+    ticker = str(symbols_df.loc[row, "symbol"])
 
 # -------------------------------------------------
 # Sidebar – Configuration
 # -------------------------------------------------
 st.sidebar.header("Configuration")
 
-row = st.sidebar.selectbox(
-    "Select Company / Index",
-    options=symbols_df.index,
-    format_func=lambda i: f"{symbols_df.loc[i, 'name']} ({symbols_df.loc[i, 'symbol']})",
-)
-
-ticker = str(symbols_df.loc[row, "symbol"])
-
-start_date = st.sidebar.date_input(
-    "Start Date",
-    value=date(2022, 1, 1),
-)
-
-end_date = st.sidebar.date_input(
-    "End Date",
-    value=date(2023, 1, 1),
-)
+start_date = st.sidebar.date_input("Start Date", value=date(2022, 1, 1))
+end_date = st.sidebar.date_input("End Date", value=date(2023, 1, 1))
 
 # Strategy selection
 st.sidebar.subheader("Strategy Selection")
 
 strategies = st.sidebar.multiselect(
     "Select Strategies",
-    options=["Moving Average", "RSI"],
+    ["Moving Average", "RSI"],
     default=["Moving Average"],
 )
 
@@ -95,16 +106,14 @@ run_button = st.sidebar.button("Run Simulation")
 # -------------------------------------------------
 if run_button:
     try:
-        # Load market data
+        if not ticker:
+            st.error("Please enter or select a valid ticker symbol.")
+            st.stop()
+
         df = load_market_data(ticker, start_date, end_date)
 
-        # Apply strategies
         if "Moving Average" in strategies:
-            df = moving_average_crossover(
-                df,
-                short_window=short_window,
-                long_window=long_window,
-            )
+            df = moving_average_crossover(df, short_window, long_window)
 
         if "RSI" in strategies:
             df = apply_rsi(df, rsi_period)
@@ -139,11 +148,7 @@ if run_button:
 
         # Price
         fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df["Close"],
-                name="Close Price",
-            ),
+            go.Scatter(x=df.index, y=df["Close"], name="Close Price"),
             row=1,
             col=1,
         )
@@ -151,21 +156,13 @@ if run_button:
         # Moving averages + Buy/Sell markers
         if "Moving Average" in strategies:
             fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df["SMA_Short"],
-                    name=f"SMA {short_window}",
-                ),
+                go.Scatter(x=df.index, y=df["SMA_Short"], name="SMA Short"),
                 row=1,
                 col=1,
             )
 
             fig.add_trace(
-                go.Scatter(
-                    x=df.index,
-                    y=df["SMA_Long"],
-                    name=f"SMA {long_window}",
-                ),
+                go.Scatter(x=df.index, y=df["SMA_Long"], name="SMA Long"),
                 row=1,
                 col=1,
             )
@@ -210,7 +207,6 @@ if run_button:
                 col=1,
             )
 
-            # Overbought / Oversold lines
             fig.add_shape(
                 type="line",
                 x0=df.index.min(),
@@ -244,6 +240,5 @@ if run_button:
 
     except Exception as e:
         st.error(str(e))
-
 else:
-    st.info("Configure parameters and click **Run Simulation**.")
+    st.info("Select a symbol, configure parameters, and click **Run Simulation**.")
