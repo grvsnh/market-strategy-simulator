@@ -2,7 +2,7 @@
 app.py
 
 Market Strategy Simulator dashboard.
-Uses reusable indicators, metrics, and visual buy/sell markers.
+UI + orchestration only.
 """
 
 from datetime import date
@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from utils.data_loader import load_market_data
+from utils.symbols import load_symbols
 from utils.metrics import (
     calculate_returns,
     total_return,
@@ -24,88 +25,105 @@ from strategies.rsi import apply_rsi
 
 
 # -------------------------------------------------
-# Page setup
+# Page configuration
 # -------------------------------------------------
-st.set_page_config(page_title="Market Strategy Simulator", layout="wide")
+st.set_page_config(
+    page_title="Market Strategy Simulator",
+    layout="wide",
+)
 
 st.title("📊 Market Strategy Simulator")
 st.write(
-    "An interactive dashboard to analyze market data and "
-    "visualize algorithmic strategies (analysis only, no trading)."
+    "An interactive dashboard to explore historical market data and "
+    "visualize algorithmic trading strategies (analysis only, no live trading)."
 )
 
 st.divider()
 
-
 # -------------------------------------------------
 # Load symbols
 # -------------------------------------------------
-@st.cache_data
-def load_symbols():
-    return pd.read_csv("data/symbols.csv")
-
-
 symbols_df = load_symbols()
 
 # -------------------------------------------------
-# Sidebar
+# Sidebar – Configuration
 # -------------------------------------------------
 st.sidebar.header("Configuration")
 
 row = st.sidebar.selectbox(
     "Select Company / Index",
     options=symbols_df.index,
-    format_func=lambda i: f"{symbols_df.loc[i,'name']} ({symbols_df.loc[i,'symbol']})",
+    format_func=lambda i: f"{symbols_df.loc[i, 'name']} ({symbols_df.loc[i, 'symbol']})",
 )
 
 ticker = str(symbols_df.loc[row, "symbol"])
 
-start_date = st.sidebar.date_input("Start Date", date(2022, 1, 1))
-end_date = st.sidebar.date_input("End Date", date(2023, 1, 1))
+start_date = st.sidebar.date_input(
+    "Start Date",
+    value=date(2022, 1, 1),
+)
+
+end_date = st.sidebar.date_input(
+    "End Date",
+    value=date(2023, 1, 1),
+)
+
+# Strategy selection
+st.sidebar.subheader("Strategy Selection")
 
 strategies = st.sidebar.multiselect(
     "Select Strategies",
-    ["Moving Average", "RSI"],
+    options=["Moving Average", "RSI"],
     default=["Moving Average"],
 )
 
+# Moving Average settings
 if "Moving Average" in strategies:
-    short_window = st.sidebar.slider("Short MA", 5, 50, 20)
-    long_window = st.sidebar.slider("Long MA", 20, 200, 50)
+    st.sidebar.subheader("Moving Average Settings")
+    short_window = st.sidebar.slider("Short MA Window", 5, 50, 20)
+    long_window = st.sidebar.slider("Long MA Window", 20, 200, 50)
 
+# RSI settings
 if "RSI" in strategies:
+    st.sidebar.subheader("RSI Settings")
     rsi_period = st.sidebar.slider("RSI Period", 5, 30, 14)
 
-run = st.sidebar.button("Run Simulation")
+run_button = st.sidebar.button("Run Simulation")
 
 # -------------------------------------------------
 # Main logic
 # -------------------------------------------------
-if run:
+if run_button:
     try:
+        # Load market data
         df = load_market_data(ticker, start_date, end_date)
 
+        # Apply strategies
         if "Moving Average" in strategies:
-            df = moving_average_crossover(df, short_window, long_window)
+            df = moving_average_crossover(
+                df,
+                short_window=short_window,
+                long_window=long_window,
+            )
 
         if "RSI" in strategies:
             df = apply_rsi(df, rsi_period)
 
         st.success(f"Loaded data for {ticker}")
 
-        # -----------------------------
-        # Metrics
-        # -----------------------------
+        # -------------------------------------------------
+        # Performance metrics
+        # -------------------------------------------------
         returns = calculate_returns(df["Close"])
 
         col1, col2, col3 = st.columns(3)
-        col1.metric("Total Return", f"{total_return(df['Close'])*100:.2f}%")
-        col2.metric("Max Drawdown", f"{max_drawdown(df['Close'])*100:.2f}%")
+        col1.metric("Total Return", f"{total_return(df['Close']) * 100:.2f}%")
+        col2.metric("Max Drawdown", f"{max_drawdown(df['Close']) * 100:.2f}%")
         col3.metric("Sharpe Ratio", f"{sharpe_ratio(returns):.2f}")
 
-        # -----------------------------
+        # -------------------------------------------------
         # Visualization
-        # -----------------------------
+        # -------------------------------------------------
         rows = 2 if "RSI" in strategies else 1
 
         fig = make_subplots(
@@ -121,7 +139,11 @@ if run:
 
         # Price
         fig.add_trace(
-            go.Scatter(x=df.index, y=df["Close"], name="Close"),
+            go.Scatter(
+                x=df.index,
+                y=df["Close"],
+                name="Close Price",
+            ),
             row=1,
             col=1,
         )
@@ -129,12 +151,21 @@ if run:
         # Moving averages + Buy/Sell markers
         if "Moving Average" in strategies:
             fig.add_trace(
-                go.Scatter(x=df.index, y=df["SMA_Short"], name="SMA Short"),
+                go.Scatter(
+                    x=df.index,
+                    y=df["SMA_Short"],
+                    name=f"SMA {short_window}",
+                ),
                 row=1,
                 col=1,
             )
+
             fig.add_trace(
-                go.Scatter(x=df.index, y=df["SMA_Long"], name="SMA Long"),
+                go.Scatter(
+                    x=df.index,
+                    y=df["SMA_Long"],
+                    name=f"SMA {long_window}",
+                ),
                 row=1,
                 col=1,
             )
@@ -170,12 +201,16 @@ if run:
         if "RSI" in strategies:
             fig.add_trace(
                 go.Scatter(
-                    x=df.index, y=df["RSI"], name="RSI", line=dict(color="orange")
+                    x=df.index,
+                    y=df["RSI"],
+                    name="RSI",
+                    line=dict(color="orange"),
                 ),
                 row=2,
                 col=1,
             )
 
+            # Overbought / Oversold lines
             fig.add_shape(
                 type="line",
                 x0=df.index.min(),
@@ -201,13 +236,14 @@ if run:
         fig.update_layout(height=750)
         st.plotly_chart(fig, use_container_width=True)
 
-        # -----------------------------
+        # -------------------------------------------------
         # Data preview
-        # -----------------------------
+        # -------------------------------------------------
         st.subheader("Data Preview")
         st.dataframe(df.tail(10), use_container_width=True)
 
     except Exception as e:
         st.error(str(e))
+
 else:
-    st.info("Configure settings and click **Run Simulation**.")
+    st.info("Configure parameters and click **Run Simulation**.")
