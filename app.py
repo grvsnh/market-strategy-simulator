@@ -2,13 +2,12 @@
 app.py
 
 Market Strategy Simulator dashboard.
-Supports both free-form ticker input and curated symbol selection.
+UI-polished version with improved layout and clarity.
 """
 
 from datetime import date
 
 import streamlit as st
-import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -27,12 +26,16 @@ from strategies.rsi import apply_rsi
 # -------------------------------------------------
 # Page configuration
 # -------------------------------------------------
-st.set_page_config(page_title="Market Strategy Simulator", layout="wide")
+st.set_page_config(
+    page_title="Market Strategy Simulator",
+    page_icon="📈",
+    layout="wide",
+)
 
-st.title("📊 Market Strategy Simulator")
-st.write(
-    "An interactive dashboard to explore global market data and "
-    "visualize algorithmic trading strategies (analysis only, no live trading)."
+st.title("📈 Market Strategy Simulator")
+st.caption(
+    "Analyze historical market data and visualize algorithmic strategies "
+    "using free, public datasets (no live trading)."
 )
 
 st.divider()
@@ -40,10 +43,10 @@ st.divider()
 # -------------------------------------------------
 # Sidebar – Symbol Selection
 # -------------------------------------------------
-st.sidebar.header("Symbol Selection")
+st.sidebar.header("🔍 Symbol Selection")
 
 symbol_mode = st.sidebar.radio(
-    "How would you like to select a symbol?",
+    "Choose selection method",
     ["Search Any Ticker", "Select from Popular List"],
 )
 
@@ -52,19 +55,18 @@ ticker = None
 if symbol_mode == "Search Any Ticker":
     ticker = (
         st.sidebar.text_input(
-            "Enter Ticker Symbol (Yahoo Finance compatible)",
+            "Enter Ticker Symbol",
             value="AAPL",
             help="Examples: AAPL, MSFT, RELIANCE.NS, ^NSEI, BTC-USD",
         )
         .strip()
         .upper()
     )
-
 else:
     symbols_df = load_symbols()
 
     row = st.sidebar.selectbox(
-        "Select Company / Index",
+        "Popular Symbols",
         options=symbols_df.index,
         format_func=lambda i: f"{symbols_df.loc[i,'name']} ({symbols_df.loc[i,'symbol']})",
     )
@@ -74,16 +76,23 @@ else:
 # -------------------------------------------------
 # Sidebar – Configuration
 # -------------------------------------------------
-st.sidebar.header("Configuration")
+st.sidebar.header("⚙️ Configuration")
 
-start_date = st.sidebar.date_input("Start Date", value=date(2022, 1, 1))
-end_date = st.sidebar.date_input("End Date", value=date(2023, 1, 1))
+start_date = st.sidebar.date_input(
+    "Start Date",
+    value=date(2022, 1, 1),
+)
+
+end_date = st.sidebar.date_input(
+    "End Date",
+    value=date(2023, 1, 1),
+)
 
 # Strategy selection
-st.sidebar.subheader("Strategy Selection")
+st.sidebar.header("📐 Strategies")
 
 strategies = st.sidebar.multiselect(
-    "Select Strategies",
+    "Enable Strategies",
     ["Moving Average", "RSI"],
     default=["Moving Average"],
 )
@@ -99,7 +108,7 @@ if "RSI" in strategies:
     st.sidebar.subheader("RSI Settings")
     rsi_period = st.sidebar.slider("RSI Period", 5, 30, 14)
 
-run_button = st.sidebar.button("Run Simulation")
+run_button = st.sidebar.button("▶ Run Analysis", use_container_width=True)
 
 # -------------------------------------------------
 # Main logic
@@ -107,7 +116,7 @@ run_button = st.sidebar.button("Run Simulation")
 if run_button:
     try:
         if not ticker:
-            st.error("Please enter or select a valid ticker symbol.")
+            st.warning("Please enter or select a valid ticker symbol.")
             st.stop()
 
         df = load_market_data(ticker, start_date, end_date)
@@ -118,17 +127,19 @@ if run_button:
         if "RSI" in strategies:
             df = apply_rsi(df, rsi_period)
 
-        st.success(f"Loaded data for {ticker}")
+        st.success(f"Data loaded successfully for **{ticker}**")
 
         # -------------------------------------------------
-        # Performance metrics
+        # Metrics
         # -------------------------------------------------
         returns = calculate_returns(df["Close"])
 
         col1, col2, col3 = st.columns(3)
-        col1.metric("Total Return", f"{total_return(df['Close']) * 100:.2f}%")
-        col2.metric("Max Drawdown", f"{max_drawdown(df['Close']) * 100:.2f}%")
-        col3.metric("Sharpe Ratio", f"{sharpe_ratio(returns):.2f}")
+        col1.metric("📈 Total Return", f"{total_return(df['Close']) * 100:.2f}%")
+        col2.metric("📉 Max Drawdown", f"{max_drawdown(df['Close']) * 100:.2f}%")
+        col3.metric("⚖️ Sharpe Ratio", f"{sharpe_ratio(returns):.2f}")
+
+        st.divider()
 
         # -------------------------------------------------
         # Visualization
@@ -141,14 +152,19 @@ if run_button:
             shared_xaxes=True,
             vertical_spacing=0.08,
             subplot_titles=[
-                "Price, Moving Averages & Trade Signals",
+                "Price, Moving Averages & Buy/Sell Signals",
                 "Relative Strength Index (RSI)",
             ][:rows],
         )
 
         # Price
         fig.add_trace(
-            go.Scatter(x=df.index, y=df["Close"], name="Close Price"),
+            go.Scatter(
+                x=df.index,
+                y=df["Close"],
+                name="Close Price",
+                line=dict(width=2),
+            ),
             row=1,
             col=1,
         )
@@ -156,13 +172,23 @@ if run_button:
         # Moving averages + Buy/Sell markers
         if "Moving Average" in strategies:
             fig.add_trace(
-                go.Scatter(x=df.index, y=df["SMA_Short"], name="SMA Short"),
+                go.Scatter(
+                    x=df.index,
+                    y=df["SMA_Short"],
+                    name=f"SMA {short_window}",
+                    line=dict(width=1.5),
+                ),
                 row=1,
                 col=1,
             )
 
             fig.add_trace(
-                go.Scatter(x=df.index, y=df["SMA_Long"], name="SMA Long"),
+                go.Scatter(
+                    x=df.index,
+                    y=df["SMA_Long"],
+                    name=f"SMA {long_window}",
+                    line=dict(width=1.5),
+                ),
                 row=1,
                 col=1,
             )
@@ -175,8 +201,8 @@ if run_button:
                     x=buys.index,
                     y=buys["Close"],
                     mode="markers",
-                    marker=dict(color="green", size=10, symbol="triangle-up"),
-                    name="Buy",
+                    marker=dict(color="green", size=12, symbol="triangle-up"),
+                    name="Buy Signal",
                 ),
                 row=1,
                 col=1,
@@ -187,8 +213,8 @@ if run_button:
                     x=sells.index,
                     y=sells["Close"],
                     mode="markers",
-                    marker=dict(color="red", size=10, symbol="triangle-down"),
-                    name="Sell",
+                    marker=dict(color="red", size=12, symbol="triangle-down"),
+                    name="Sell Signal",
                 ),
                 row=1,
                 col=1,
@@ -201,7 +227,7 @@ if run_button:
                     x=df.index,
                     y=df["RSI"],
                     name="RSI",
-                    line=dict(color="orange"),
+                    line=dict(color="orange", width=2),
                 ),
                 row=2,
                 col=1,
@@ -229,16 +255,24 @@ if run_button:
                 col=1,
             )
 
-        fig.update_layout(height=750)
+        fig.update_layout(
+            height=800,
+            legend_title="Indicators",
+            hovermode="x unified",
+        )
+
         st.plotly_chart(fig, use_container_width=True)
 
         # -------------------------------------------------
         # Data preview
         # -------------------------------------------------
-        st.subheader("Data Preview")
-        st.dataframe(df.tail(10), use_container_width=True)
+        with st.expander("🔎 View Raw Data"):
+            st.dataframe(df.tail(20), use_container_width=True)
 
     except Exception as e:
-        st.error(str(e))
+        st.error(f"Error: {e}")
 else:
-    st.info("Select a symbol, configure parameters, and click **Run Simulation**.")
+    st.info(
+        "👈 Select a symbol, configure strategies, and click **Run Analysis** "
+        "to visualize market behavior."
+    )
